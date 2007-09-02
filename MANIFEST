@@ -14,5 +14,7 @@ MANIFEST			This list of files
 MANIFEST.SKIP
 META.yml
 README
+t/author/pod-coverage.t
+t/author/pod.t
 t/live-refs.t
 t/live-simple.t

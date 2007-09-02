@@ -2,3 +2,5 @@
 blib
 pm_to_blib
 MANIFEST.bak
+MANIFEST.SKIP~
+cover_db
