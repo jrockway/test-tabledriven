@@ -12,35 +12,34 @@ sub import {
     my %code;
     
     my ($caller) = caller;
+    
     # verify that the tests are callable
     foreach my $sub (keys %tests) {
         no strict 'refs';
         $code{$sub} = *{$caller. '::'. $sub}{CODE} or
           die "cannot find a sub in '$caller' to call for '$sub' tests";
     }
-
+    
     # we parse the tests, put them in @todo, then run them
     my @todo;
     foreach my $test (keys %tests) {
-        my $code  = $code{$test};
         my $cases = $tests{$test};
-        my $t = sub { my @a = @_; sub { _run_test($code, $test, @a) }};
-
-        if (ref $cases eq 'HASH') {
-            foreach my $input (keys %{$cases}) {
-                push @todo, $t->($input, $cases->{$input});
-            }
-        }
-
-        elsif (ref $cases eq 'ARRAY') {
-            foreach my $case (@{$cases}) {
-                push @todo, $t->($case->[0], $case->[1]);
-            }
-        }
+        my $t     = sub { 
+            my @a = @_; 
+            push @todo, sub { _run_test($code{$test}, $test, @a) };
+        };
         
-        else {
-            die "I don't know how to run the tests under key '$test'";
-        }
+        my $do = { HASH  => sub {
+                       $t->($_, $cases->{$_}) for keys %{$cases};
+                   },
+                   ARRAY => sub {
+                       $t->($_->[0], $_->[1]) for @{$cases};
+                   },
+                 };
+        eval {
+            $do->{ref $cases}->();
+        };
+        die "I don't know how to run the tests under key '$test'" if $@;
     }
     
     # now run them
