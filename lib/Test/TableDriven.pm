@@ -221,6 +221,12 @@ Especially don't print TAP to STDOUT :)
 
 =back
 
+=head1 EXPORT
+
+=head2 runtests
+
+Run the tests.  Only call this once.
+
 =head1 BUGS
 
 Report them to RT, or patch them against the git repository at:
