@@ -3,11 +3,7 @@
 
 use strict;
 use warnings;
-require Test::TableDriven;
-sub hash  { $_[0] }
-sub array { $_[0] }
-
-Test::TableDriven->import(
+use Test::TableDriven (
     hash  => { 1 => '1',
                2 => '2',
              },
@@ -15,3 +11,8 @@ Test::TableDriven->import(
               [ 2 => 2 ],
              ],
 );
+
+sub hash  { $_[0] }
+sub array { $_[0] }
+
+runtests;
