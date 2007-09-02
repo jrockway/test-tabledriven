@@ -4,15 +4,25 @@ package Test::TableDriven;
 use strict;
 use warnings;
 use Test::More;
+use Data::Dumper; # always wanted to intentionally ship this.
+
+our $VERSION = '0.01';
+
+my %tests;
 
 sub import {
     my $class = shift;
-    my %tests = @_;
-
-    my %code;
-    
     my ($caller) = caller;
-    
+    %tests = @_;
+
+    no strict 'refs'; # strict refs are for losers!
+    *{"${caller}::runtests"} = \&runtests;
+}
+
+sub runtests() {
+    my ($caller) = caller;
+    my %code;
+
     # verify that the tests are callable
     foreach my $sub (keys %tests) {
         no strict 'refs';
@@ -20,7 +30,7 @@ sub import {
           die "cannot find a sub in '$caller' to call for '$sub' tests";
     }
     
-    # we parse the tests, put them in @todo, then run them
+    # parse the tests, pushing a closure that runs one test onto @todo
     my @todo;
     foreach my $test (keys %tests) {
         my $cases = $tests{$test};
@@ -42,18 +52,29 @@ sub import {
         die "I don't know how to run the tests under key '$test'" if $@;
     }
     
-    # now run them
+    # now run the tests
     plan tests => scalar @todo;
     $_->() for @todo;
     
-    return;
+    return; # returns nothing
 }
 
 sub _run_test {
     my ($code, $test, $in, $expected) = @_;
+
+    # run a test
+    my $got = $code->($in);  # call the user's code
+    if (ref $expected || ref $got)  {
+        my $a = Dumper($in);
+        my $b = Dumper($expected);
+        do { s/\$VAR\d+\s=\s?//; s/\n//g; s/\s+/ /g; s/;//g } for ($a,$b);
+        is_deeply($got, $expected, "$test: $a -> $b");   # compare refs
+    }
+    else {
+        is($got, $expected, "$test: $got => $expected"); # compare strings
+    }
     
-    my $got = $code->($in);
-    is($got, $expected, "$test: $in => $expected");
+    return;
 }
 
 1;
@@ -77,6 +98,8 @@ Test::TableDriven - write tests, not scripts that run them
              [[qw/this is also possible/] => { and => 'it works' }],
             ],
    );
+
+   runtests;
      
    sub foo {
       my $in  = shift;
@@ -88,17 +111,18 @@ Test::TableDriven - write tests, not scripts that run them
 
 =head1 DESCRIPTION
 
-Writing table-driven tests is usually a good idea.  You can add test
-cases by adding a line to your test file.  There's no code to fuck up,
-so writing tests is as painless as possible.  Pain is bad, so
-table-driven tests are good.
+Writing table-driven tests is usually a good idea.  Adding a test case
+doesn't require adding code, so it's easy to avoid fucking up the
+other tests.  However, actually going from a table of tests to a test
+that runs is non-trivial.
 
-C<Test::TableDriven> makes writing the test drivers easy.  You simply
-define your test cases and write a function to run them.
-Test::TableDriven will compute how many tests need to be run, and then
-run the tests.  You concentrate on your data and what you're testing,
-not C<plan tests => scalar keys %test_cases + 42>.  And that's a good
-thing.
+C<Test::TableDriven> makes writing the test drivers trivial.  You
+simply define your test cases and write a function that turns the
+input data into output data to compare against.  C<Test::TableDriven>
+will compute how many tests need to be run, and then run the tests.
+
+Concentrate on your data and what you're testing, not C<plan tests =>
+scalar keys %test_cases> and a big foreach loop.
 
 =head1 WHAT DO I DO
 
@@ -111,12 +135,15 @@ Start by using the modules that you need for your tests:
 Then write some code to test the module:
 
    sub strlen {
-       my $got = shift;
-       my $exp = String::Length->strlen($got);
-       return $exp;
+       my $in  = shift;
+       my $out = String::Length->strlen($in);
+       return $out;
    }
 
-Then write some tests cases:
+This C<strlen> function will accept a test case (as C<$in>) and turns
+it into something to compare against your test cases:
+
+Oh yeah, you need some test cases:
 
    use Test::TableDriven (
        strlen => { foo => 3,
@@ -125,14 +152,32 @@ Then write some tests cases:
                  },
    );
 
-Now run the test file.  The output will look like:
+And you'll want those test to run somehow:
+
+   runtests;
+
+Now execute the test file.  The output will look like:
 
    1..2
    ok 1 - strlen: bar => 3
    ok 2 - strlen: foo => 3
 
-Note that the tests get run at C<Test::TableDriven->import> time, so
-anything after the use line is basically ignored.
+Add another test case:
+
+       strlen => { foo  => 3,
+                   bar  => 3,
+                   quux => 4,
+                   ...,
+                 },
+
+And your test still works:
+
+   1..3
+   ok 1 - strlen: bar => 3
+   ok 2 - strlen: quux => 4
+   ok 3 - strlen: foo => 3
+
+Yay.
 
 =head1 DETAILS
 
@@ -141,14 +186,15 @@ things to keep in mind:
 
 =over 4
 
+=item *
+
+Don't forget to C<runtests>.  Just loading the module doesn't do a
+whole lot.
+
 =item *  
 
-Tests are run at import time. 
-
-=item *  
-
-If a subtest is not a subroutine name in the current package, the
-whole test file will die.
+If a subtest is not a subroutine name in the current package, runtests
+will die.
 
 =item *  
 
@@ -163,7 +209,7 @@ string, C<is> is used.
 
 =item *  
 
-Don't run extra tests.
+Feel free to use C<Test::More::diag> and friends, if you like.
 
 =item *  
 
@@ -189,7 +235,5 @@ Jonathan Rockway C<< <jrockway AT cpan.org> >>.
 
 =head1 COPYRIGHT
 
-Test::TableDriven is copyright (c) 2007 Jonathan Rockway.  You may
-use, modify, and redistribute it under the same terms as Perl itself.
-
-=cut
+This module is copyright (c) 2007 Jonathan Rockway.  You may use,
+modify, and redistribute it under the same terms as Perl itself.
