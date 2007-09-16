@@ -67,17 +67,17 @@ sub _run_test {
     my $got = $code->($in);  # call the user's code
     if (ref $expected || ref $got)  {
         my $i = Dumper($in);
-        my $a = Dumper($got);
-        my $b = Dumper($expected);
-        do { s/\$VAR\d+\s=\s?//; s/\n//g; s/\s+/ /g; s/;//g } for ($i,$a,$b);
+        my $g = Dumper($got);
+        my $e = Dumper($expected);
+        do { s/\$VAR\d+\s=\s?//; s/\n//g; s/\s+/ /g; s/;//g } for ($i,$g,$e);
 
         # compare refs
-        is_deeply($got, $expected, "$test: $i => $a (is $b)");
+        is_deeply($got, $expected, "$test: $i => $e (is $g)");
     }
     else {
         # compare strings
         do { $_ = 'undef' unless defined $_ } for ($got, $expected);
-        is($got, $expected, "$test: $in => $got (is $expected)"); 
+        is($got, $expected, "$test: $in => $expected (is $got)"); 
     }
     
     return;
