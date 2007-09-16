@@ -6,7 +6,7 @@ use warnings;
 use Test::More;
 use Data::Dumper; # always wanted to intentionally ship this.
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 my %tests;
 
@@ -61,17 +61,23 @@ sub runtests() {
 
 sub _run_test {
     my ($code, $test, $in, $expected) = @_;
-
+    no warnings 'uninitialized';
+    
     # run a test
     my $got = $code->($in);  # call the user's code
     if (ref $expected || ref $got)  {
-        my $a = Dumper($in);
+        my $i = Dumper($in);
+        my $a = Dumper($got);
         my $b = Dumper($expected);
-        do { s/\$VAR\d+\s=\s?//; s/\n//g; s/\s+/ /g; s/;//g } for ($a,$b);
-        is_deeply($got, $expected, "$test: $a -> $b");   # compare refs
+        do { s/\$VAR\d+\s=\s?//; s/\n//g; s/\s+/ /g; s/;//g } for ($i,$a,$b);
+
+        # compare refs
+        is_deeply($got, $expected, "$test: $i => $a (is $b)");
     }
     else {
-        is($got, $expected, "$test: $got => $expected"); # compare strings
+        # compare strings
+        do { $_ = 'undef' unless defined $_ } for ($got, $expected);
+        is($got, $expected, "$test: $in => $got (is $expected)"); 
     }
     
     return;
