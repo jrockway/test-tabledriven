@@ -14,5 +14,3 @@ use Test::TableDriven (
 
 sub hash  { $_[0] }
 sub array { $_[0] }
-
-runtests;

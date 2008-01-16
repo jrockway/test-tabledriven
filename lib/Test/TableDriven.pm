@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use Test::More;
 use Data::Dumper; # always wanted to intentionally ship this.
+use Filter::EOF qw(on_eof_call);
 
 our $VERSION = '0.02';
 
@@ -15,12 +16,11 @@ sub import {
     my ($caller) = caller;
     %tests = @_;
 
-    no strict 'refs'; # strict refs are for losers!
-    *{"${caller}::runtests"} = \&runtests;
+    on_eof_call( sub { runtests($caller) } );
 }
 
 sub runtests() {
-    my ($caller) = caller;
+    my $caller = shift || caller;
     my %code;
 
     # verify that the tests are callable
@@ -104,8 +104,6 @@ Test::TableDriven - write tests, not scripts that run them
              [[qw/this is also possible/] => { and => 'it works' }],
             ],
    );
-
-   runtests;
      
    sub foo {
       my $in  = shift;
@@ -158,10 +156,6 @@ Oh yeah, you need some test cases:
                  },
    );
 
-And you'll want those test to run somehow:
-
-   runtests;
-
 Now execute the test file.  The output will look like:
 
    1..2
@@ -191,11 +185,6 @@ I'm not in a prose-generation mood right now, so here's a list of
 things to keep in mind:
 
 =over 4
-
-=item *
-
-Don't forget to C<runtests>.  Just loading the module doesn't do a
-whole lot.
 
 =item *  
 
@@ -229,9 +218,7 @@ Especially don't print TAP to STDOUT :)
 
 =head1 EXPORT
 
-=head2 runtests
-
-Run the tests.  Only call this once.
+None
 
 =head1 BUGS
 

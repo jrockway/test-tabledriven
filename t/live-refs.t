@@ -11,5 +11,3 @@ use Test::TableDriven (
 );
 
 sub refs { $_[0] }
-
-runtests;

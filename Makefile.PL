@@ -4,6 +4,8 @@ use inc::Module::Install;
 
 name('Test-TableDriven');
 all_from('lib/Test/TableDriven.pm');
-requires 'Test::More';
+
 requires 'Data::Dumper';
+requires 'Filter::EOF';
+requires 'Test::More';
 WriteAll();
